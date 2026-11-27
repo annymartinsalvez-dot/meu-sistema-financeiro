@@ -1,0 +1,798 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meu Sistema Financeiro</title>
+<style>
+:root{--blue:#193b65;--blue2:#2866a5;--bg:#f3f5f9;--ink:#25334a;--muted:#758196;--green:#239b70;--red:#df6666;--amber:#d99b42}
+*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif}
+body{background:var(--bg);color:var(--ink)}
+header{background:var(--blue);color:white;padding:22px max(5%,calc((100% - 1120px)/2))}
+header h1{font-size:24px}
+header p{margin-top:6px;color:#dce6f2;font-size:14px}
+main{max-width:1120px;margin:28px auto;padding:0 20px}
+.topbar,.section-title{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.topbar{margin-bottom:20px}
+h2{font-size:21px}
+h3{font-size:17px}
+select,input,button{font-size:14px;border-radius:9px;padding:12px;border:1px solid #d7dfeb}
+select,input{background:#fff;color:var(--ink);min-width:0}
+button{background:var(--blue2);color:white;border:0;cursor:pointer;font-weight:600}
+button:hover{background:var(--blue)}
+.panel{background:#fff;border-radius:14px;padding:21px;margin-bottom:20px;box-shadow:0 2px 10px #00000008}
+.filters{display:flex;gap:9px;flex-wrap:wrap}
+.filters select{min-width:145px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px}
+.cards.secondary-cards{grid-template-columns:repeat(2,1fr);margin-bottom:20px}
+.metric{background:#fff;padding:20px;border-radius:13px;border-top:4px solid var(--blue2);box-shadow:0 2px 10px #00000008}
+.metric.in{border-color:var(--green)}
+.metric.out{border-color:var(--red)}
+.metric.pending{border-color:var(--amber)}
+.metric p{color:var(--muted);font-size:13px}
+.metric strong{display:block;font-size:25px;margin-top:10px}
+.entrybox{display:flex;gap:10px;margin-top:14px}
+.entrybox input{flex:1}
+.hint{font-size:12px;color:var(--muted);margin-top:9px;line-height:1.5}
+.preview{background:#f5f8fc;border:1px solid #dce6f2;border-radius:11px;padding:15px;margin-top:14px;display:none}
+.preview-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+.preview-grid label,.commitment-form label{font-size:12px;color:var(--muted);display:block;margin-bottom:5px}
+.preview-grid select,.preview-grid input,.commitment-form select,.commitment-form input{width:100%}
+.actions{display:flex;gap:9px;flex-wrap:wrap}
+.secondary{background:#eaf0f7;color:var(--blue)}
+.budget-item{margin-top:16px}
+.budget-head{display:flex;justify-content:space-between;gap:10px;font-size:13px;margin-bottom:7px}
+.track{height:9px;border-radius:20px;background:#e9edf3;overflow:hidden}
+.fill{height:100%;border-radius:20px;background:#3984c6}
+.fill.warn{background:var(--amber)}
+.fill.over{background:var(--red)}
+.small{font-size:12px;color:var(--muted);margin-top:6px}
+.tx,.commitment{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid #edf0f4}
+.tx:last-child,.commitment:last-child{border-bottom:0}
+.tx small,.commitment small{display:block;color:var(--muted);margin-top:5px;font-size:12px}
+.amount{white-space:nowrap;font-weight:700}
+.plus{color:var(--green)}
+.minus{color:var(--red)}
+.month-note{font-size:13px;color:var(--muted);margin-top:8px}
+.category-list{margin-top:10px}
+.empty{font-size:14px;color:var(--muted);padding:12px 0}
+.budget-form{display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr auto;gap:8px;margin-top:14px}
+.budget-form input,.budget-form select{width:100%}
+.commitment-form{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:10px;margin-top:14px}
+.commitment-form .wide{grid-column:span 2}
+.commitment-form button{grid-column:1/-1}
+.pill{display:inline-block;background:#edf3fa;color:var(--blue);padding:5px 8px;border-radius:20px;font-size:11px;margin-top:5px}
+.status{display:inline-block;font-size:11px;font-weight:700;padding:5px 8px;border-radius:20px}
+.status.paid{background:#e6f5ee;color:#16845d}
+.status.pending{background:#fff4df;color:#9b6815}
+.pay-actions{display:flex;flex-direction:column;align-items:flex-end;gap:7px}
+.pay-btn{font-size:12px;padding:9px 11px;white-space:nowrap}
+.undo-btn{background:#eaf0f7;color:var(--blue)}
+.danger-btn{background:#fff0f0;color:#b64a4a;border:1px solid #f2d1d1;padding:8px 10px;font-size:12px}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:10px 20px 30px}
+@media(max-width:700px){
+.cards{grid-template-columns:1fr}
+.cards.secondary-cards{grid-template-columns:1fr 1fr}
+.entrybox{flex-direction:column}
+.budget-form{grid-template-columns:1fr 1fr}
+.budget-form button{grid-column:1/-1}
+.commitment-form{grid-template-columns:1fr 1fr}
+.commitment-form .wide{grid-column:1/-1}
+.metric strong{font-size:23px}
+}
+@media(max-width:480px){
+.commitment-form,.preview-grid{grid-template-columns:1fr}
+.commitment-form .wide{grid-column:auto}
+.commitment{align-items:flex-start}
+.pay-actions{max-width:120px}
+}
+</style>
+</head>
+<body>
+
+<header>
+<h1>Meu Sistema Financeiro</h1>
+<p>Organize suas finanças pessoais e da casa em um só lugar.</p>
+</header>
+
+<main>
+
+<div class="topbar">
+ <div>
+  <h2>Visão geral</h2>
+  <p class="month-note">Acompanhe seu dinheiro sem complicação.</p>
+ </div>
+ <div class="filters">
+  <select id="areaFilter" aria-label="Filtrar área" onchange="render()">
+   <option value="Todas">Todas as áreas</option>
+   <option value="Pessoal">Pessoal</option>
+   <option value="Casa">Casa</option>
+  </select>
+  <input id="monthFilter" type="month" aria-label="Mês de referência" onchange="render()">
+ </div>
+</div>
+
+<section class="cards">
+ <div class="metric">
+  <p>Saldo previsto do mês</p>
+  <strong id="balance">R$ 0,00</strong>
+ </div>
+ <div class="metric in">
+  <p>Entradas registradas</p>
+  <strong id="income">R$ 0,00</strong>
+ </div>
+ <div class="metric out">
+  <p>Despesas e compromissos</p>
+  <strong id="expense">R$ 0,00</strong>
+ </div>
+</section>
+
+<section class="cards secondary-cards">
+ <div class="metric in">
+  <p>Contas fixas pagas</p>
+  <strong id="paidTotal">R$ 0,00</strong>
+  <span class="small" id="paidCount">0 contas pagas</span>
+ </div>
+ <div class="metric pending">
+  <p>Contas fixas pendentes</p>
+  <strong id="pendingTotal">R$ 0,00</strong>
+  <span class="small" id="pendingCount">0 contas pendentes</span>
+ </div>
+</section>
+
+<section class="panel">
+ <h3>Registrar movimentação</h3>
+ <p class="hint">Escreva como você falaria: “combustível 100 casa” ou “compra 200 parcelado 2x no cartão pessoal”. Confira a prévia antes de confirmar.</p>
+ <div class="entrybox">
+  <input id="phrase" type="text" placeholder="Ex.: mercado 180 reais para casa" autocomplete="off">
+  <button onclick="prepareEntry()">Interpretar</button>
+ </div>
+
+ <div class="preview" id="preview">
+  <strong>Confira o que entendi:</strong>
+  <div class="preview-grid">
+   <div><label>Descrição</label><input id="pDescription"></div>
+   <div><label>Valor total (R$)</label><input id="pAmount" type="number" min="0.01" step="0.01"></div>
+   <div><label>Tipo</label><select id="pType"><option value="despesa">Despesa</option><option value="receita">Receita</option></select></div>
+   <div><label>Área</label><select id="pArea"><option>Pessoal</option><option>Casa</option></select></div>
+   <div><label>Categoria</label><select id="pCategory"></select></div>
+   <div><label>Pagamento</label>
+    <select id="pPayment">
+     <option>Não informado</option><option>Dinheiro</option><option>Pix</option><option>Débito</option><option>Cartão de crédito</option><option>Transferência</option>
+    </select>
+   </div>
+   <div><label>Parcelas</label>
+    <select id="pInstallments">
+     <option value="1">À vista (1 vez)</option>
+     <option value="2">2 vezes</option><option value="3">3 vezes</option>
+     <option value="4">4 vezes</option><option value="5">5 vezes</option>
+     <option value="6">6 vezes</option><option value="7">7 vezes</option>
+     <option value="8">8 vezes</option><option value="9">9 vezes</option>
+     <option value="10">10 vezes</option><option value="11">11 vezes</option>
+     <option value="12">12 vezes</option>
+    </select>
+   </div>
+  </div>
+  <p class="hint" id="installmentHint"></p>
+  <div class="actions">
+   <button onclick="saveEntry()">Confirmar lançamento</button>
+   <button class="secondary" onclick="cancelPreview()">Cancelar</button>
+  </div>
+ </div>
+</section>
+
+<section class="panel">
+ <div class="section-title">
+  <h3>Contas fixas e compromissos</h3>
+  <span class="small">Cadastre uma vez e acompanhe mês a mês</span>
+ </div>
+ <p class="hint">Cadastre financiamentos, aluguel e outras contas recorrentes. Cada mês começa como pendente. Marque como paga quando confirmar o pagamento.</p>
+
+ <form id="commitmentForm" class="commitment-form">
+  <div class="wide">
+   <label for="cDescription">Descrição</label>
+   <input id="cDescription" placeholder="Ex.: Financiamento do apartamento" required>
+  </div>
+  <div>
+   <label for="cAmount">Valor mensal (R$)</label>
+   <input id="cAmount" type="number" min="0.01" step="0.01" placeholder="1800,00" required>
+  </div>
+  <div>
+   <label for="cCategory">Categoria</label>
+   <select id="cCategory"></select>
+  </div>
+  <div>
+   <label for="cArea">Área</label>
+   <select id="cArea"><option>Casa</option><option>Pessoal</option></select>
+  </div>
+  <div>
+   <label for="cPayment">Forma de pagamento</label>
+   <select id="cPayment">
+    <option>Não informado</option><option>Débito automático</option><option>Pix</option><option>Boleto</option><option>Cartão de crédito</option><option>Transferência</option>
+   </select>
+  </div>
+  <div>
+   <label for="cStart">Primeiro mês</label>
+   <input id="cStart" type="month" required>
+  </div>
+  <div>
+   <label for="cDuration">Duração</label>
+   <input id="cDuration" type="number" min="1" max="600" placeholder="20" required>
+  </div>
+  <div>
+   <label for="cUnit">Unidade da duração</label>
+   <select id="cUnit">
+    <option value="years">Anos</option>
+    <option value="months">Meses</option>
+   </select>
+  </div>
+  <button type="submit">Cadastrar compromisso fixo</button>
+ </form>
+
+ <p class="hint">Exemplo: 20 anos = 240 meses. Para um financiamento de 20 anos, informe 20 e selecione “Anos”.</p>
+ <div id="commitments" class="category-list"></div>
+</section>
+
+<section class="panel">
+ <div class="section-title">
+  <h3>Orçamento por categoria</h3>
+  <span class="small">Limites mensais por área</span>
+ </div>
+ <form class="budget-form" id="budgetForm">
+  <select id="budgetCategory" aria-label="Categoria"></select>
+  <select id="budgetArea" aria-label="Área"><option>Pessoal</option><option>Casa</option></select>
+  <input id="budgetAmount" type="number" min="0.01" step="0.01" placeholder="Limite R$" required>
+  <input id="budgetMonth" type="month" aria-label="Mês do orçamento" required>
+  <button type="submit">Salvar limite</button>
+ </form>
+ <div id="budgets" class="category-list"></div>
+</section>
+
+<section class="panel">
+ <div class="section-title">
+  <h3>Onde estou gastando?</h3>
+  <span class="small" id="categorySubtitle"></span>
+ </div>
+ <div id="categoryBreakdown" class="category-list"></div>
+</section>
+
+<section class="panel">
+ <div class="section-title">
+  <h3>Próximas parcelas de compras</h3>
+  <span class="small">Parcelamentos lançados</span>
+ </div>
+ <div id="futureInstallments"></div>
+</section>
+
+<section class="panel">
+ <h3>Movimentações do mês</h3>
+ <div id="transactions"></div>
+</section>
+
+</main>
+
+<footer>Os dados ficam salvos neste navegador. Esta versão ainda não sincroniza automaticamente entre dispositivos nem confirma pagamentos com o banco.</footer>
+
+<script>
+const CATEGORIES=[
+"Alimentação","Moradia","Vestuário","Compras","Combustível",
+"Transporte","Saúde","Educação","Lazer","Contas","Outros"
+];
+
+const STORAGE_KEY="meuSistemaFinanceiro_v2";
+let data=loadData();
+let draft=null;
+
+function loadData(){
+ try{
+  const s=JSON.parse(localStorage.getItem(STORAGE_KEY));
+  if(s&&Array.isArray(s.transactions)){
+   return {
+    transactions:s.transactions,
+    budgets:Array.isArray(s.budgets)?s.budgets:[],
+    commitments:Array.isArray(s.commitments)?s.commitments:[],
+    payments:s.payments&&typeof s.payments==="object"?s.payments:{}
+   };
+  }
+ }catch(e){}
+ return {transactions:[],budgets:[],commitments:[],payments:{}};
+}
+
+function persist(){
+ localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+}
+
+function money(v){
+ return Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+}
+
+function currentMonth(){
+ const d=new Date();
+ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+}
+
+function addMonths(month,count){
+ const [y,m]=month.split("-").map(Number);
+ const d=new Date(y,m-1+count,1);
+ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+}
+
+function monthLabel(month){
+ const [y,m]=month.split("-");
+ return `${m}/${y}`;
+}
+
+function escapeHtml(s){
+ return String(s).replace(/[&<>"']/g,c=>({
+ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+ }[c]));
+}
+
+function detectCategory(text){
+ const t=text.toLowerCase();
+ const rules=[
+ ["Alimentação",/mercado|supermercado|almoço|almoco|jantar|lanche|padaria|restaurante|comida|açougue|acougue/],
+ ["Moradia",/aluguel|condomínio|condominio|financiamento do apartamento|apartamento|reforma|móvel|moveis|móveis/],
+ ["Vestuário",/roupa|blusa|calça|calca|sapato|tênis|tenis|vestido|camisa/],
+ ["Combustível",/combustível|combustivel|gasolina|etanol|diesel|abastecimento/],
+ ["Transporte",/moto|financiamento da moto|uber|ônibus|onibus|passagem|estacionamento|pedágio|pedagio/],
+ ["Saúde",/farmácia|farmacia|remédio|remedio|consulta|médico|medico|dentista|exame/],
+ ["Educação",/curso|livro|escola|faculdade|mensalidade escolar/],
+ ["Lazer",/cinema|viagem|passeio|show|jogo|streaming/],
+ ["Contas",/internet|energia|luz|água|agua|telefone|celular|gás|gas/],
+ ["Compras",/compra|presente|eletrônico|eletronico|acessório|acessorio/]
+ ];
+ for(const [category,regex] of rules){
+  if(regex.test(t))return category;
+ }
+ return "Outros";
+}
+
+function parseAmount(text){
+ const matches=[...text.matchAll(/(?:r\$\s*)?(\d{1,3}(?:\.\d{3})*(?:,\d{1,2})?|\d+(?:[.,]\d{1,2})?)/gi)];
+ if(!matches.length)return null;
+ let raw=matches[0][1];
+ if(raw.includes(","))raw=raw.replace(/\./g,"").replace(",",".");
+ else if((raw.match(/\./g)||[]).length>1)raw=raw.replace(/\./g,"");
+ else if(/\.\d{3}$/.test(raw))raw=raw.replace(".","");
+ const n=Number(raw);
+ return Number.isFinite(n)&&n>0?n:null;
+}
+
+function parseInstallments(text){
+ const m=text.match(/(?:parcelad[oa]?\s*)?(\d{1,2})\s*x\b/i)
+ ||text.match(/em\s+(\d{1,2})\s+vezes/i);
+ return m?Math.min(12,Math.max(1,Number(m[1]))):1;
+}
+
+function prepareEntry(){
+ const phrase=document.getElementById("phrase").value.trim();
+ if(!phrase){alert("Escreva uma movimentação primeiro.");return;}
+ const amount=parseAmount(phrase);
+ if(!amount){alert("Não consegui identificar o valor. Exemplo: mercado 150 reais casa.");return;}
+
+ const t=phrase.toLowerCase();
+ const type=/recebi|receita|salário|salario|vendi|entrada|reembolso/.test(t)?"receita":"despesa";
+ const area=/\bcasa\b|doméstic|domestic/.test(t)?"Casa":"Pessoal";
+ const payment=/cartão|cartao|crédito|credito/.test(t)?"Cartão de crédito":
+ /pix/.test(t)?"Pix":/débito|debito/.test(t)?"Débito":
+ /dinheiro/.test(t)?"Dinheiro":"Não informado";
+ const installments=type==="despesa"?parseInstallments(t):1;
+
+ let description=phrase
+ .replace(/\br\$\s*/ig,"")
+ .replace(/\b\d{1,2}\s*x\b/ig,"")
+ .replace(/\bparcelad[oa]?\b/ig,"")
+ .replace(/\bem\s+\d{1,2}\s+vezes\b/ig,"")
+ .replace(/\b(pessoal|casa|no cartão|no cartao|cartão|cartao|crédito|credito|pix|débito|debito|dinheiro|reais|real)\b/ig,"")
+ .replace(/\s+/g," ").trim();
+
+ description=description
+ .replace(/^\d+(?:[.,]\d{1,2})?\s*/,"")
+ .replace(/\s+\d+(?:[.,]\d{1,2})?$/,"").trim();
+
+ if(!description)description=type==="receita"?"Receita":"Despesa";
+
+ draft={description,amount,type,area,category:detectCategory(phrase),payment,installments};
+
+ document.getElementById("pDescription").value=draft.description;
+ document.getElementById("pAmount").value=draft.amount.toFixed(2);
+ document.getElementById("pType").value=draft.type;
+ document.getElementById("pArea").value=draft.area;
+ document.getElementById("pCategory").value=draft.category;
+ document.getElementById("pPayment").value=draft.payment;
+ document.getElementById("pInstallments").value=String(draft.installments);
+
+ updateInstallmentHint();
+ document.getElementById("preview").style.display="block";
+}
+
+function updateInstallmentHint(){
+ const amount=Number(document.getElementById("pAmount").value||0);
+ const count=Number(document.getElementById("pInstallments").value||1);
+ document.getElementById("installmentHint").textContent=count>1
+ ?`${count} parcelas de aproximadamente ${money(amount/count)}. O valor informado é o total da compra.`
+ :"Lançamento em uma única vez.";
+}
+
+function cancelPreview(){
+ document.getElementById("preview").style.display="none";
+ draft=null;
+}
+
+function saveEntry(){
+ const description=document.getElementById("pDescription").value.trim();
+ const amount=Number(document.getElementById("pAmount").value);
+ const type=document.getElementById("pType").value;
+ const area=document.getElementById("pArea").value;
+ const category=document.getElementById("pCategory").value;
+ const payment=document.getElementById("pPayment").value;
+ const installments=type==="despesa"?Number(document.getElementById("pInstallments").value):1;
+
+ if(!description||!Number.isFinite(amount)||amount<=0){
+  alert("Confira a descrição e o valor.");
+  return;
+ }
+
+ const start=currentMonth();
+ const groupId=crypto.randomUUID?crypto.randomUUID():String(Date.now());
+
+ for(let i=0;i<installments;i++){
+  data.transactions.push({
+   id:groupId+"-"+i,groupId,description,
+   amount:Math.round((amount/installments)*100)/100,
+   totalAmount:amount,type,area,category,payment,
+   installmentNumber:i+1,installmentCount:installments,
+   month:addMonths(start,i),date:new Date().toISOString()
+  });
+ }
+
+ if(installments>1){
+  const g=data.transactions.filter(x=>x.groupId===groupId);
+  const sum=g.slice(0,-1).reduce((a,x)=>a+x.amount,0);
+  g[g.length-1].amount=Math.round((amount-sum)*100)/100;
+ }
+
+ persist();
+ document.getElementById("phrase").value="";
+ cancelPreview();
+ render();
+ alert("Lançamento salvo! As parcelas foram distribuídas pelos meses.");
+}
+
+function populateCategories(){
+ for(const id of ["pCategory","budgetCategory","cCategory"]){
+  document.getElementById(id).innerHTML=CATEGORIES.map(c=>`<option>${c}</option>`).join("");
+ }
+}
+
+function commitmentMonths(c){
+ return c.unit==="years"?Number(c.duration)*12:Number(c.duration);
+}
+
+function commitmentIsActive(c,month){
+ const end=addMonths(c.startMonth,commitmentMonths(c)-1);
+ return month>=c.startMonth&&month<=end;
+}
+
+function commitmentsForMonth(month,area){
+ return data.commitments.filter(c=>
+  commitmentIsActive(c,month)&&(area==="Todas"||c.area===area)
+ );
+}
+
+function paymentKey(id,month){
+ return `${id}__${month}`;
+}
+
+function isPaid(id,month){
+ return data.payments[paymentKey(id,month)]===true;
+}
+
+function togglePaid(id,month){
+ const key=paymentKey(id,month);
+ if(isPaid(id,month))delete data.payments[key];
+ else data.payments[key]=true;
+ persist();
+ render();
+}
+
+function selectedTransactions(){
+ const month=document.getElementById("monthFilter").value||currentMonth();
+ const area=document.getElementById("areaFilter").value;
+ return data.transactions.filter(t=>
+  t.month===month&&(area==="Todas"||t.area===area)
+ );
+}
+
+function render(){
+ const month=document.getElementById("monthFilter").value||currentMonth();
+ const area=document.getElementById("areaFilter").value;
+ const tx=selectedTransactions();
+
+ const income=tx.filter(t=>t.type==="receita").reduce((s,t)=>s+t.amount,0);
+ const variableExpense=tx.filter(t=>t.type==="despesa").reduce((s,t)=>s+t.amount,0);
+ const active=commitmentsForMonth(month,area);
+ const fixedTotal=active.reduce((s,c)=>s+Number(c.amount),0);
+
+ const paid=active.filter(c=>isPaid(c.id,month));
+ const pending=active.filter(c=>!isPaid(c.id,month));
+ const paidValue=paid.reduce((s,c)=>s+Number(c.amount),0);
+ const pendingValue=pending.reduce((s,c)=>s+Number(c.amount),0);
+ const expense=variableExpense+fixedTotal;
+
+ document.getElementById("balance").textContent=money(income-expense);
+ document.getElementById("income").textContent=money(income);
+ document.getElementById("expense").textContent=money(expense);
+ document.getElementById("paidTotal").textContent=money(paidValue);
+ document.getElementById("pendingTotal").textContent=money(pendingValue);
+ document.getElementById("paidCount").textContent=`${paid.length} de ${active.length} contas fixas`;
+ document.getElementById("pendingCount").textContent=`${pending.length} contas aguardando pagamento`;
+
+ renderCommitments(month,area);
+ renderBudgets(month,tx,active);
+ renderCategories(tx,active);
+ renderFuture(month,area);
+ renderTransactions(tx,active);
+ document.getElementById("categorySubtitle").textContent=monthLabel(month);
+}
+
+function renderCommitments(month,area){
+ const host=document.getElementById("commitments");
+ const list=data.commitments.filter(c=>area==="Todas"||c.area===area);
+
+ if(!list.length){
+  host.innerHTML='<p class="empty">Nenhum compromisso cadastrado ainda.</p>';
+  return;
+ }
+
+ host.innerHTML=list.map(c=>{
+  const months=commitmentMonths(c);
+  const end=addMonths(c.startMonth,months-1);
+  const active=commitmentIsActive(c,month);
+  const paid=active&&isPaid(c.id,month);
+  const total=Number(c.amount)*months;
+
+  let status=active
+   ?(paid?'<span class="status paid">PAGA NESTE MÊS</span>':'<span class="status pending">PENDENTE NESTE MÊS</span>')
+   :(month<c.startMonth?'<span class="small">Ainda não começou</span>':'<span class="small">Prazo encerrado</span>');
+
+  let action=active
+   ?`<button class="pay-btn ${paid?'undo-btn':''}" onclick="togglePaid('${c.id}','${month}')">${paid?'Desfazer pagamento':'Marcar como paga'}</button>`
+   :'';
+
+  return `
+  <div class="commitment">
+   <div style="min-width:0">
+    <strong>${escapeHtml(c.description)}</strong>
+    <small>${escapeHtml(c.category)} · ${escapeHtml(c.area)} · ${escapeHtml(c.payment)}</small>
+    <span class="pill">${money(c.amount)}/mês · ${c.duration} ${c.unit==="years"?"ano(s)":"mês(es)"}</span>
+    <small>Período: ${monthLabel(c.startMonth)} até ${monthLabel(end)} · ${months} parcelas previstas</small>
+    <div style="margin-top:7px">${status}</div>
+   </div>
+   <div class="pay-actions">
+    <strong>${money(total)}</strong>
+    <small>total previsto no período</small>
+    ${action}
+    <button class="danger-btn" onclick="removeCommitment('${c.id}')">Excluir</button>
+   </div>
+  </div>`;
+ }).join("");
+}
+
+function removeCommitment(id){
+ if(!confirm("Excluir este compromisso e seu histórico de pagamentos?"))return;
+
+ data.commitments=data.commitments.filter(c=>c.id!==id);
+
+ Object.keys(data.payments).forEach(k=>{
+  if(k.startsWith(id+"__"))delete data.payments[k];
+ });
+
+ persist();
+ render();
+}
+
+function renderBudgets(month,tx,active){
+ const area=document.getElementById("areaFilter").value;
+ const list=data.budgets.filter(b=>
+  b.month===month&&(area==="Todas"||b.area===area)
+ );
+ const host=document.getElementById("budgets");
+
+ if(!list.length){
+  host.innerHTML='<p class="empty">Nenhum limite cadastrado para este mês. Use o formulário acima para criar seu orçamento.</p>';
+  return;
+ }
+
+ host.innerHTML=list.map(b=>{
+  const variable=tx.filter(t=>
+   t.type==="despesa"&&t.category===b.category&&t.area===b.area
+  ).reduce((s,t)=>s+t.amount,0);
+
+  const fixed=active.filter(c=>
+   c.category===b.category&&c.area===b.area
+  ).reduce((s,c)=>s+Number(c.amount),0);
+
+  const spent=variable+fixed;
+  const pct=b.amount?spent/b.amount*100:0;
+  const cls=pct>=100?"over":pct>=80?"warn":"";
+
+  return `
+  <div class="budget-item">
+   <div class="budget-head">
+    <strong>${escapeHtml(b.category)} · ${escapeHtml(b.area)}</strong>
+    <span>${money(spent)} / ${money(b.amount)}</span>
+   </div>
+   <div class="track"><div class="fill ${cls}" style="width:${Math.min(100,pct)}%"></div></div>
+   <p class="small">${pct.toFixed(0)}% do limite utilizado${pct>=100?" · Limite ultrapassado":pct>=80?" · Atenção ao orçamento":""}</p>
+  </div>`;
+ }).join("");
+}
+
+function renderCategories(tx,active){
+ const totals={};
+
+ tx.filter(t=>t.type==="despesa").forEach(t=>{
+  totals[t.category]=(totals[t.category]||0)+t.amount;
+ });
+
+ active.forEach(c=>{
+  totals[c.category]=(totals[c.category]||0)+Number(c.amount);
+ });
+
+ const sorted=Object.entries(totals).sort((a,b)=>b[1]-a[1]);
+ const host=document.getElementById("categoryBreakdown");
+
+ if(!sorted.length){
+  host.innerHTML='<p class="empty">Ainda não há despesas ou compromissos neste mês.</p>';
+  return;
+ }
+
+ const max=sorted[0][1];
+
+ host.innerHTML=sorted.map(([name,value])=>`
+  <div class="budget-item">
+   <div class="budget-head">
+    <strong>${escapeHtml(name)}</strong>
+    <strong>${money(value)}</strong>
+   </div>
+   <div class="track"><div class="fill" style="width:${value/max*100}%"></div></div>
+  </div>
+ `).join("");
+}
+
+function renderFuture(month,area){
+ const host=document.getElementById("futureInstallments");
+
+ const future=data.transactions.filter(t=>
+  t.type==="despesa"&&t.installmentCount>1&&t.month>month&&
+  (area==="Todas"||t.area===area)
+ ).sort((a,b)=>a.month.localeCompare(b.month));
+
+ if(!future.length){
+  host.innerHTML='<p class="empty">Nenhuma parcela futura de compra cadastrada.</p>';
+  return;
+ }
+
+ host.innerHTML=future.slice(0,8).map(t=>`
+  <div class="tx">
+   <div>
+    <strong>${escapeHtml(t.description)}</strong>
+    <small>${monthLabel(t.month)} · Parcela ${t.installmentNumber}/${t.installmentCount} · ${escapeHtml(t.area)}</small>
+   </div>
+   <span class="amount minus">${money(t.amount)}</span>
+  </div>
+ `).join("");
+}
+
+function renderTransactions(tx,active){
+ const host=document.getElementById("transactions");
+
+ const rows=tx.map(t=>({
+  date:t.date,
+  html:`
+   <div class="tx">
+    <div>
+     <strong>${escapeHtml(t.description)}</strong>
+     <small>${escapeHtml(t.category)} · ${escapeHtml(t.area)} · ${t.installmentCount>1?`Parcela ${t.installmentNumber}/${t.installmentCount} · `:""}${escapeHtml(t.payment)}</small>
+    </div>
+    <span class="amount ${t.type==="receita"?"plus":"minus"}">${t.type==="receita"?"+ ":"− "}${money(t.amount)}</span>
+   </div>`
+ }));
+
+ active.forEach(c=>{
+  const paid=isPaid(c.id,document.getElementById("monthFilter").value);
+  rows.push({
+   date:"0000",
+   html:`
+    <div class="tx">
+     <div>
+      <strong>${escapeHtml(c.description)}</strong>
+      <small>${escapeHtml(c.category)} · ${escapeHtml(c.area)} · Conta fixa · ${paid?"Paga":"Pendente"}</small>
+     </div>
+     <span class="amount minus">${money(c.amount)}</span>
+    </div>`
+  });
+ });
+
+ rows.sort((a,b)=>b.date.localeCompare(a.date));
+
+ host.innerHTML=rows.length
+  ?rows.map(r=>r.html).join("")
+  :'<p class="empty">Nenhuma movimentação neste mês.</p>';
+}
+
+document.getElementById("commitmentForm").addEventListener("submit",e=>{
+ e.preventDefault();
+
+ const description=document.getElementById("cDescription").value.trim();
+ const amount=Number(document.getElementById("cAmount").value);
+ const category=document.getElementById("cCategory").value;
+ const area=document.getElementById("cArea").value;
+ const payment=document.getElementById("cPayment").value;
+ const startMonth=document.getElementById("cStart").value;
+ const duration=Number(document.getElementById("cDuration").value);
+ const unit=document.getElementById("cUnit").value;
+
+ if(!description||!startMonth||!Number.isFinite(amount)||amount<=0||!Number.isInteger(duration)||duration<=0){
+  alert("Confira a descrição, valor, primeiro mês e duração.");
+  return;
+ }
+
+ const id=crypto.randomUUID?crypto.randomUUID():String(Date.now());
+
+ data.commitments.push({
+  id,description,amount,category,area,payment,startMonth,duration,unit
+ });
+
+ persist();
+ e.target.reset();
+ document.getElementById("cStart").value=currentMonth();
+ render();
+
+ alert("Compromisso cadastrado! Cada mês começará como pendente até você marcar o pagamento.");
+});
+
+document.getElementById("budgetForm").addEventListener("submit",e=>{
+ e.preventDefault();
+
+ const category=document.getElementById("budgetCategory").value;
+ const area=document.getElementById("budgetArea").value;
+ const amount=Number(document.getElementById("budgetAmount").value);
+ const month=document.getElementById("budgetMonth").value;
+
+ if(!month||!Number.isFinite(amount)||amount<=0){
+  alert("Informe um mês e um limite válido.");
+  return;
+ }
+
+ data.budgets=data.budgets.filter(b=>
+  !(b.category===category&&b.area===area&&b.month===month)
+ );
+
+ data.budgets.push({category,area,amount,month});
+ persist();
+
+ document.getElementById("budgetAmount").value="";
+ render();
+});
+
+document.getElementById("pAmount").addEventListener("input",updateInstallmentHint);
+document.getElementById("pInstallments").addEventListener("change",updateInstallmentHint);
+
+document.getElementById("phrase").addEventListener("keydown",e=>{
+ if(e.key==="Enter")prepareEntry();
+});
+
+populateCategories();
+
+document.getElementById("monthFilter").value=currentMonth();
+document.getElementById("budgetMonth").value=currentMonth();
+document.getElementById("cStart").value=currentMonth();
+
+render();
+</script>
+</body>
+</html>
